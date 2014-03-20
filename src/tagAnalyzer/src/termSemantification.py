@@ -11,8 +11,9 @@ class semantification:
 		self.notInDbpedia = MongoClient()["b"]["b"]
 		self.termResultObject = {}
 	def getTermData(self,term):
-		terms = [term,str(term + " (disambiguation)")]
-		query = self.config["query"]% term
+		query = self.config["query"]% (term,term)
+		self.run(query)
+		#query = self.config["query"]% term
 		return self.run(query)
 
 	def isValidURI(self,uri):
@@ -30,31 +31,54 @@ class semantification:
 	def setTerm(self,result):
 		self.termResultObject["term"] = result["term"]["value"]
 	def setLandingObject(self,result):
-		uri = result["LandingURI"]["value"]
-		
-		 self.termResultObject["landingURI"][uri.replace(".","")] = {}
+		for each in result["results"]["bindings"]:
+			uri = each["LandingURI"]["value"]
+			if "disambiguation" not in uri:
+				break
+		uriDataObject = self.config["uriDataObject"]
+		uriDataObject["uri"] = uri
+		self.termResultObject["landingURI"][uri.replace(".","")] = uriDataObject
 
 	def setDisamObject(self,result):
-
+		uri = result["disambiguates"]["value"]
+		uriDataObject = self.config["uriDataObject"]
+		uriDataObject["uri"] = uri
+		self.termResultObject["disamURIs"][uri.replace(".","$")] = uriDataObject
+		self.termResultObject["hasDisam"] = True
 	def setRedirectObject(self,result):
-
+		self.termResultObject["hasRedirect"] = True
+		uri = result["redirect"]["value"]
+		uriDataObject = self.config["uriDataObject"]
+		uriDataObject["uri"] = uri
+		self.termResultObject["redirectPage"][uri.replace(".","$")] = uriDataObject
 	def setRedirectAndDisam(self,result):
-
-	def processResult(self,result):
-		print(result["results"]["bindings"][0].keys())
+		self.termResultObject["hasDisam"] = True
+		self.termResultObject["hasRedirect"] = True
+		uri = result["rd"]["value"]
+		uriDataObject = self.config["uriDataObject"]
+		uriDataObject["uri"] = uri
+		self.termResultObject["redirectPage"][uri.replace(".","$")] = uriDataObject
+		uriDataObject = self.config["uriDataObject"]
+		uriDataObject["uri"] = uri
+		self.termResultObject["disamURIs"][uri.replace(".","$")] = uriDataObject
+	def defineResultObject(self,term):
+		self.termResultObject = self.config["termResultObject"]
+		self.termResultObject["semantified"] = True
+		self.termResultObject["term"] = term
+	def processResult(self,result,term):
 		if len(result["results"]["bindings"]) > 0 :
-			self.termResultObject = self.config["termResultObject"]
-			self.termResultObject["semantified"] = True
-			self.termResultObject["term"] = result["results"]["bindings"][0]["term"]["value"]
-			uri = uri
-			self.termResultObject["LandingURI"][uri.replace(".","")] = {}
-			uriDataObject = self.config["uriDataObject"]
-			uriDataObject["uri"] = uri
+			self.defineResultObject(term)
 			for eachResultFetched in result["results"]["bindings"]:
-				keys = eachResultFetched.keys()
-
-		print(termResultObject)
-		return termResultObject
+				keys = filter(lambda x : True if x != "LandingURI" and x != "term" else False , eachResultFetched.keys())
+				for key in keys:
+					if key == "redirect":
+						self.setRedirectObject(eachResultFetched)
+					elif key == "disambiguates":
+						self.setDisamObject(eachResultFetched)
+					else:
+						self.setRedirectAndDisam(eachResultFetched)
+		print(self.termResultObject)
+		return self.termResultObject
 	def insertFound(self,termResult) :
 		self.termDB.update({"_id" : termResult["_id"]},termResult,True)
 	
@@ -64,11 +88,11 @@ class semantification:
 
 	def processTerm(self,term):
 		data = self.getTermData(term.title())
-		self.processResult(data)
+		self.processResult(data,term)
 
 	def main(self,terms):
 		map(self.processTerm,terms)
 
 if __name__ == "__main__":	
 	semantify = semantification()
-	semantify.main(["india"])
+	semantify.main(["apples"])

@@ -1,0 +1,15 @@
+{
+	"query" : "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> PREFIX dbpedia-owl: <http://dbpedia.org/ontology/>  SELECT ?LandingURI ?redirect ?term ?disambiguates ?rd WHERE {?LandingURI rdfs:label ?term .OPTIONAL{?LandingURI <http://dbpedia.org/ontology/wikiPageRedirects> ?redirect .}OPTIONAL{?LandingURI <http://dbpedia.org/ontology/wikiPageDisambiguates> ?disambiguates .}OPTIONAL{ ?redirects <http://dbpedia.org/ontology/wikiPageDisambiguates> ?disambiguates .}  OPTIONAL{?LandingURI dbpedia-owl:wikiPageRedirects/(dbpedia-owl:wikiPageDisambiguates){1,2} ?rd .} filter(?term = '%s'@en || ?term  = '%s (disambiguation)'@en)}",
+	"termResultObject" : {
+		"_id" : "",
+		"semantified" : false,"hasRedirect" : false, "hasDisam" : false,"directDisam" : false,"reverseCheckDisam" : false,"suffixedLabelDisam" : false,
+		"landingURI" : {},
+		"redirectPage" : {},
+		"allURI" : [],
+		"disamURIs" : {},
+		"term" : ""
+		},
+	"uriDataObject" :  {
+		"uri" : "", "properties" : {"subject" : [],"connections" : []} , "aggreatedProperties" : []
+		}	
+}

@@ -817,5 +817,5 @@
 "youll",
 "youve"],
 	"maxlength" : 10,
-	"minlength" : 3
+	"minlength" : 2
 }
