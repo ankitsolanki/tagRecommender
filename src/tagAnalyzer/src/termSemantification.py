@@ -5,10 +5,10 @@ from SPARQLWrapper.Wrapper import jsonlayer
 class semantification:
 	def __init__(self):	
 
-		self.config = json.load(open("../config/config.json"))
+		self.config = json.load(open("./tagAnalyzer/config/config.json"))
 		self.sparql = SPARQLWrapper("http://dbpedia.org/sparql")
-		self.termDB = MongoClient()["a"]["a"]
-		self.notInDbpedia = MongoClient()["b"]["b"]
+		self.termDB = MongoClient()["semantified"]["terms"]
+		self.notInDbpedia = MongoClient()["nodatafount"]["terms"]
 		self.termResultObject = {}
 	def getTermData(self,term):
 		query = self.config["query"]% (term,term)
@@ -38,6 +38,7 @@ class semantification:
 		uriDataObject = self.config["uriDataObject"]
 		uriDataObject["uri"] = uri
 		self.termResultObject["landingURI"][uri.replace(".","")] = uriDataObject
+		self.termResultObjectp["allURI"].append(uri)
 
 	def setDisamObject(self,result):
 		uri = result["disambiguates"]["value"]
@@ -45,12 +46,14 @@ class semantification:
 		uriDataObject["uri"] = uri
 		self.termResultObject["disamURIs"][uri.replace(".","$")] = uriDataObject
 		self.termResultObject["hasDisam"] = True
+		self.termResultObjectp["allURI"].append(uri)
 	def setRedirectObject(self,result):
 		self.termResultObject["hasRedirect"] = True
 		uri = result["redirect"]["value"]
 		uriDataObject = self.config["uriDataObject"]
 		uriDataObject["uri"] = uri
 		self.termResultObject["redirectPage"][uri.replace(".","$")] = uriDataObject
+		self.termResultObjectp["allURI"].append(uri)
 	def setRedirectAndDisam(self,result):
 		self.termResultObject["hasDisam"] = True
 		self.termResultObject["hasRedirect"] = True
@@ -61,6 +64,7 @@ class semantification:
 		uriDataObject = self.config["uriDataObject"]
 		uriDataObject["uri"] = uri
 		self.termResultObject["disamURIs"][uri.replace(".","$")] = uriDataObject
+		self.termResultObjectp["allURI"].append(uri)
 	def defineResultObject(self,term):
 		self.termResultObject = self.config["termResultObject"]
 		self.termResultObject["semantified"] = True
@@ -77,7 +81,6 @@ class semantification:
 						self.setDisamObject(eachResultFetched)
 					else:
 						self.setRedirectAndDisam(eachResultFetched)
-		print(self.termResultObject)
 		return self.termResultObject
 	def insertFound(self,termResult) :
 		self.termDB.update({"_id" : termResult["_id"]},termResult,True)
@@ -88,7 +91,15 @@ class semantification:
 
 	def processTerm(self,term):
 		data = self.getTermData(term.title())
-		self.processResult(data,term)
+		insertObj = self.processResult(data,term)
+		insertObj["_id"] = insertObj["term"]
+		if len(insertObj["allURI"]) > 0 :
+			self.insertFound(insertObj)
+		else : 
+			term = insertObj["term"]
+			insertObj = {}
+			insertObj["_id"] = term
+			self.notInDbpedia(insertObj)
 
 	def main(self,terms):
 		map(self.processTerm,terms)
