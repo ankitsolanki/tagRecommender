@@ -8,6 +8,7 @@ class test :
 	def __init__(self):	
 		self.db = MongoClient()["tagRecommender"]["data_200000"]
 		self.statdb = MongoClient()["tagRecommender"]["stats"]
+		self.tokenstatkeeper = MongoClient()["tokenstatkeeper"]["token"]
 		self.config = json.load(open('../config/blacklist.json'))
 		self.blacklisted =  list(set(self.config["blacklist"]))
 		self.blacklisted =  map(lambda x : x.lower().replace("'",""),self.blacklisted)
@@ -15,6 +16,7 @@ class test :
 		self.minTermLength = self.config["minlength"]
 		self.obj = {}
 		self.unigramObj = {}
+		self.unigramGrouper = {}
 	def freqCounter (self,List):
 		for each in List : 
 			each = list(each)
@@ -31,7 +33,26 @@ class test :
 		if term not in self.unigramObj.keys() :
 			self.unigramObj[term] = 0
 		self.unigramObj[term] = self.unigramObj[term] + 1
+	def unigramUpdaterWithOtherVariable(self,tokens):
+		for token in tokens:
+			if token not in self.unigramGrouper.keys():
+				self.unigramGrouper[token] = {}
+			for t in tokens:
+				if t not in self.unigramGrouper[token].keys():
+					self.unigramGrouper[token][t] = 0
+				self.unigramGrouper[token][t] = self.unigramGrouper[token][t] + 1 
+	def tokenstatmaintainer(self,tokens):
+		for token in tokens:
+			tokendata = list(self.tokenstatmaintainer.find({"_id" : token}))
+			if len(tokendata) == 0 :
+				tokendata = [{"_id" : token , "token" : token ,"stats" : {}}]
+			tokendata = tokendata[0]
 
+			for t in tokens:
+				if t not in tokendata["stats"].keys():
+					tokendata["stats"][t] = 0
+				tokendata["stats"][t] = tokendata["stats"][t] + 1
+			self.tokenstatmaintainer.update({"_id" : token} , tokendata, True)
 	def validTerm(self,term):
 		if term is not "" and len(term) > self.minTermLength and len(term) < self.maxTermLength:
 			if term not in self.blacklisted and not term.isdigit():
@@ -104,7 +125,8 @@ class test :
 			lemmas = filter(lambda x: False if x == "" else True,lemmas)
 			
 			token.extend(lemmas)
-			map(self.unigramUpdater,token)
+			#map(self.unigramUpdater,token)
+			self.unigramUpdaterWithOtherVariable(token)
 			if count == 50 :
 				count = 0
 				print("bigram key counts :" + str(len(self.obj)) + "  Unigram key count : " + str(len(self.unigramObj))+ ", processed terms : " + str(processedCount)  )
