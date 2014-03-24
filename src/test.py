@@ -7,7 +7,7 @@ from nltk import WordNetLemmatizer as wnl
 class test :
 	def __init__(self):	
 		self.db = MongoClient()["tagRecommender"]["data_200000"]
-		self.statdb = MongoClient()["tagRecommender"]["stats"]
+		self.statdb = MongoClient()["tagRecommender"]["stats2"]
 		self.tokenstatkeeper = MongoClient()["tokenstatkeeper"]["token"]
 		self.config = json.load(open('../config/blacklist.json'))
 		self.blacklisted =  list(set(self.config["blacklist"]))
@@ -43,7 +43,7 @@ class test :
 				self.unigramGrouper[token][t] = self.unigramGrouper[token][t] + 1 
 	def tokenstatmaintainer(self,tokens):
 		for token in tokens:
-			tokendata = list(self.tokenstatmaintainer.find({"_id" : token}))
+			tokendata = list(self.tokenstatkeeper.find({"_id" : token}))
 			if len(tokendata) == 0 :
 				tokendata = [{"_id" : token , "token" : token ,"stats" : {}}]
 			tokendata = tokendata[0]
@@ -52,7 +52,7 @@ class test :
 				if t not in tokendata["stats"].keys():
 					tokendata["stats"][t] = 0
 				tokendata["stats"][t] = tokendata["stats"][t] + 1
-			self.tokenstatmaintainer.update({"_id" : token} , tokendata, True)
+			self.tokenstatkeeper.update({"_id" : token} , tokendata, True)
 	def validTerm(self,term):
 		if term is not "" and len(term) > self.minTermLength and len(term) < self.maxTermLength:
 			if term not in self.blacklisted and not term.isdigit():
@@ -111,7 +111,7 @@ class test :
 		for each in corpus:
 			processedCount = processedCount + 1 
 			count = count + 1
-			text = each["body"]+". " +each["title"]
+			text = each["title"]
 			token = nltk.word_tokenize(text)
 			token = filter(self.is_ascii,token)
 			token = map(self.cleanToken,token)
@@ -126,17 +126,19 @@ class test :
 			
 			token.extend(lemmas)
 			#map(self.unigramUpdater,token)
-			self.unigramUpdaterWithOtherVariable(token)
-			if count == 50 :
+			#self.unigramUpdaterWithOtherVariable(token)
+			self.tokenstatmaintainer(token)
+			if count == 50:
 				count = 0
 				print("bigram key counts :" + str(len(self.obj)) + "  Unigram key count : " + str(len(self.unigramObj))+ ", processed terms : " + str(processedCount)  )
 				insertObj = {
-				"_id" :"intialStats-10",
-				"key" : "intialStats-10",
+				"_id" :"intialStats-11",
+				"key" : "intialStats-11",
 				"statsUnigram" : self.unigramObj,
-				"statsBigram" : self.obj
+				"statsBigram" : self.obj,
+				"somethg" : self.unigramGrouper
 				}
-				self.statdb.update({"_id" : "intialStats-10"}, insertObj, True)
+				self.statdb.update({"_id" : "intialStats-11"}, insertObj, True)
 
 
 if __name__ == "__main__":

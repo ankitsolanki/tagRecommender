@@ -17,4 +17,4 @@ class processTerms:
 		
 if __name__ == "__main__":	
 	process = processTerms()
-	process.main("data.csv")
+	process.main("tag.csv")
