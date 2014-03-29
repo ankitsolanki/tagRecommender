@@ -105,10 +105,12 @@ class test :
 			return ""
 		return lemma
 	def main(self):
-		corpus = self.db.find(timeout=False)
+		corpus = self.db.find({"processed" : False},timeout=False)
 		processedCount = 0
 		count = 0
 		for each in corpus:
+			each["processed"] = True
+			self.db.update({"_id" : each["_id"]},each,True)
 			processedCount = processedCount + 1 
 			count = count + 1
 			text = each["title"]
@@ -128,6 +130,7 @@ class test :
 			#map(self.unigramUpdater,token)
 			#self.unigramUpdaterWithOtherVariable(token)
 			self.tokenstatmaintainer(token)
+
 			if count == 50:
 				count = 0
 				print("bigram key counts :" + str(len(self.obj)) + "  Unigram key count : " + str(len(self.unigramObj))+ ", processed terms : " + str(processedCount)  )
@@ -139,7 +142,7 @@ class test :
 				"somethg" : self.unigramGrouper
 				}
 				self.statdb.update({"_id" : "intialStats-11"}, insertObj, True)
-
+			self.db.update({"_id" : each["_id"]},each,True)
 
 if __name__ == "__main__":
 	t = test()

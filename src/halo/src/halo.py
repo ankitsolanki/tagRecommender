@@ -1,5 +1,6 @@
 import json
 import json,sys
+import time 
 from SPARQLWrapper import SPARQLWrapper, JSON
 from SPARQLWrapper.Wrapper import jsonlayer
 from pymongo import MongoClient
@@ -53,7 +54,7 @@ class halo:
 		else :
 			print("previously processed uri : " + uri )
 	def getdatadb(self):
-		return self.termDB.find()
+		return self.termDB.find(timeout=False)
 	
 	def processhalofromdb(self):
 		data = self.getdatadb()
